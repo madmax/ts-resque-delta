@@ -1,7 +1,7 @@
-require 'sidekiq'
+require 'resque'
 require 'thinking_sphinx'
 
-class ThinkingSphinx::Deltas::SidekiqDelta < ThinkingSphinx::Deltas::DefaultDelta
+class ThinkingSphinx::Deltas::ResqueDelta < ThinkingSphinx::Deltas::DefaultDelta
   JOB_TYPES  = []
   JOB_PREFIX = 'ts-delta'
 
@@ -10,11 +10,10 @@ class ThinkingSphinx::Deltas::SidekiqDelta < ThinkingSphinx::Deltas::DefaultDelt
   # WARNING: This will clear ALL jobs in any queue used by a ResqueDelta job.
   # If you're sharing a queue with other jobs they'll be deleted!
   def self.clear_thinking_sphinx_queues
-    JOB_TYPES.collect { |job|
-      job.sidekiq_options['queue']
-    }.uniq.each do |queue|
-      Sidekiq.redis { |redis| redis.srem "queues", queue }
-      Sidekiq.redis { |redis| redis.del  "queue:#{queue}" }
+    queues = JOB_TYPES.collect { |job| instance_variable_get(:@queue) }.uniq
+    queues.each do |queue|
+      Resque.redis.srem "queues", queue
+      Resque.redis.del  "queue:#{queue}"
     end
   end
 
@@ -28,35 +27,32 @@ class ThinkingSphinx::Deltas::SidekiqDelta < ThinkingSphinx::Deltas::DefaultDelt
   # Use simplistic locking.  We're assuming that the user won't run more than one
   # `rake ts:si` or `rake ts:in` task at a time.
   def self.lock(index_name)
-    Sidekiq.redis {|redis|
-      redis.set("#{JOB_PREFIX}:index:#{index_name}:locked", 'true')
-    }
+    Resque.redis.set("#{JOB_PREFIX}:index:#{index_name}:locked", 'true')
   end
 
   def self.unlock(index_name)
-    Sidekiq.redis {|redis|
-      redis.del("#{JOB_PREFIX}:index:#{index_name}:locked")
-    }
+    Resque.redis.del("#{JOB_PREFIX}:index:#{index_name}:locked")
   end
 
   def self.locked?(index_name)
-    Sidekiq.redis {|redis|
-      redis.get("#{JOB_PREFIX}:index:#{index_name}:locked") == 'true'
-    }
+    Resque.redis.get("#{JOB_PREFIX}:index:#{index_name}:locked") == 'true'
   end
 
   def delete(index, instance)
     return if self.class.locked?(index.reference)
 
-    ThinkingSphinx::Deltas::SidekiqDelta::FlagAsDeletedJob.perform_async(
-      index.name, index.document_id_for_key(instance.id)
+    Resque.enqueue(
+      ThinkingSphinx::Deltas::SidekiqDelta::FlagAsDeletedJob,
+      index.name,
+      index.document_id_for_key(instance.id)
     )
   end
 
   def index(index)
     return if self.class.locked?(index.reference)
-
-    ThinkingSphinx::Deltas::SidekiqDelta::DeltaJob.perform_async(index.name)
+    Resque.enqueue(
+      ThinkingSphinx::Deltas::SidekiqDelta::DeltaJob, index.name
+    )
   end
 end
 
