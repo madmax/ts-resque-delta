@@ -15,5 +15,5 @@ class ThinkingSphinx::Deltas::ResqueDelta::FlagAsDeletedJob
   end
 end
 
-ThinkingSphinx::Deltas::SidekiqDelta::JOB_TYPES <<
-  ThinkingSphinx::Deltas::SidekiqDelta::FlagAsDeletedJob
+ThinkingSphinx::Deltas::ResqueDelta::JOB_TYPES <<
+  ThinkingSphinx::Deltas::ResqueDelta::FlagAsDeletedJob

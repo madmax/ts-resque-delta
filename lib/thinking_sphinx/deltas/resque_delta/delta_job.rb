@@ -46,5 +46,5 @@ class ThinkingSphinx::Deltas::ResqueDelta::DeltaJob
   end
 end
 
-ThinkingSphinx::Deltas::SidekiqDelta::JOB_TYPES <<
-  ThinkingSphinx::Deltas::SidekiqDelta::DeltaJob
+ThinkingSphinx::Deltas::ResqueDelta::JOB_TYPES <<
+  ThinkingSphinx::Deltas::ResqueDelta::DeltaJob

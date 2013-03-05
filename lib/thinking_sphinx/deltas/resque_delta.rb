@@ -42,7 +42,7 @@ class ThinkingSphinx::Deltas::ResqueDelta < ThinkingSphinx::Deltas::DefaultDelta
     return if self.class.locked?(index.reference)
 
     Resque.enqueue(
-      ThinkingSphinx::Deltas::SidekiqDelta::FlagAsDeletedJob,
+      ThinkingSphinx::Deltas::ResqueDelta::FlagAsDeletedJob,
       index.name,
       index.document_id_for_key(instance.id)
     )
@@ -51,10 +51,10 @@ class ThinkingSphinx::Deltas::ResqueDelta < ThinkingSphinx::Deltas::DefaultDelta
   def index(index)
     return if self.class.locked?(index.reference)
     Resque.enqueue(
-      ThinkingSphinx::Deltas::SidekiqDelta::DeltaJob, index.name
+      ThinkingSphinx::Deltas::ResqueDelta::DeltaJob, index.name
     )
   end
 end
 
-require 'thinking_sphinx/deltas/sidekiq_delta/delta_job'
-require 'thinking_sphinx/deltas/sidekiq_delta/flag_as_deleted_job'
+require 'thinking_sphinx/deltas/resque_delta/delta_job'
+require 'thinking_sphinx/deltas/resque_delta/flag_as_deleted_job'
